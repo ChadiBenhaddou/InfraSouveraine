@@ -94,7 +94,7 @@ class PayPalService
         return $response->json();
     }
 
-    public function createSubscription(string $planId, string $returnUrl, string $cancelUrl, string $email = ''): array
+    public function createSubscription(string $planId, string $returnUrl, string $cancelUrl, string $email = '', string $customId = ''): array
     {
         $payload = [
             'plan_id' => $planId,
@@ -113,6 +113,10 @@ class PayPalService
 
         if ($email) {
             $payload['subscriber'] = ['email_address' => $email];
+        }
+
+        if ($customId) {
+            $payload['custom_id'] = $customId;
         }
 
         $response = $this->authenticatedRequest()
@@ -139,20 +143,24 @@ class PayPalService
         return $response->successful();
     }
 
-    public function createOrder(float $amount, string $description, string $returnUrl, string $cancelUrl, string $currency = 'USD'): array
+    public function createOrder(float $amount, string $description, string $returnUrl, string $cancelUrl, string $currency = 'USD', string $customId = ''): array
     {
+        $purchaseUnit = [
+            'amount' => [
+                'currency_code' => $currency,
+                'value' => number_format($amount, 2, '.', ''),
+            ],
+            'description' => $description,
+        ];
+
+        if ($customId) {
+            $purchaseUnit['custom_id'] = $customId;
+        }
+
         $response = $this->authenticatedRequest()
             ->post("{$this->baseUrl}/v2/checkout/orders", [
                 'intent' => 'CAPTURE',
-                'purchase_units' => [
-                    [
-                        'amount' => [
-                            'currency_code' => $currency,
-                            'value' => number_format($amount, 2, '.', ''),
-                        ],
-                        'description' => $description,
-                    ],
-                ],
+                'purchase_units' => [$purchaseUnit],
                 'payment_source' => [
                     'paypal' => [
                         'experience_context' => [

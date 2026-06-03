@@ -9,6 +9,8 @@ return [
     'default_volume_size_gb' => env('RUNPOD_DEFAULT_VOLUME_SIZE', 50),
     'default_volume_mount_path' => env('RUNPOD_VOLUME_MOUNT_PATH', '/root/.ollama'),
     'default_webui_port' => env('RUNPOD_WEBUI_PORT', 8080),
+    'webhook_secret' => env('RUNPOD_WEBHOOK_SECRET'),
+    'use_v1_api_payload' => env('RUNPOD_USE_V1_PAYLOAD'),
     'poll_interval_seconds' => env('RUNPOD_POLL_INTERVAL', 15),
     'poll_max_attempts' => env('RUNPOD_POLL_MAX_ATTEMPTS', 60),
 

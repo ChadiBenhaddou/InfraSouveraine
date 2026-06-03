@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::get('/health', HealthController::class)->name('health');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'wizard'])->name('onboarding.wizard');

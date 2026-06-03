@@ -49,6 +49,8 @@ class ProvisionRunPodPod implements ShouldQueue
 
         $adminUsername = 'admin_' . Str::random(12);
         $adminPassword = Str::password(24, symbols: true);
+        $encryptedPassword = encrypt($adminPassword);
+        $encryptedUsername = encrypt($adminUsername);
 
         $ollamaModel = $modelConfig['ollama_tag'] ?? $modelId;
         $huggingFaceId = $modelConfig['huggingface_id'] ?? '';
@@ -96,8 +98,8 @@ class ProvisionRunPodPod implements ShouldQueue
                 'status' => 'CREATING',
                 'gpu_tier' => $gpuTier,
                 'model_id' => $modelId,
-                'admin_username' => $adminUsername,
-                'admin_password' => $adminPassword,
+                'admin_username' => $encryptedUsername,
+                'admin_password' => $encryptedPassword,
                 'port' => $port,
                 'runtime_metrics' => ['provisioning_payload' => $payload],
             ]);

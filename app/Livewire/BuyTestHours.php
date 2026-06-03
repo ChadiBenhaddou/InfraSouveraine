@@ -63,6 +63,7 @@ class BuyTestHours extends Component
             "{$pack['label']} de test — InfraSouveraine : {$pack['desc']}",
             route('test-hours.success'),
             route('test-hours.cancel'),
+            customId: "test_hours:{$this->tenant->id}:{$pack['hours']}",
         );
 
         $approvalUrl = $paypal->getApprovalUrl($order);

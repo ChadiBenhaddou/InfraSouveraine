@@ -35,6 +35,8 @@ class WelcomeWithCredentials extends Mailable
                 'loginUrl' => $this->buildLoginUrl(),
                 'modelName' => config("runpod.recommended_models.{$this->pod->model_id}.display", $this->pod->model_id),
                 'gpuName' => config("runpod.gpu_tiers.{$this->pod->gpu_tier}.display", $this->pod->gpu_tier),
+                'adminUsername' => $this->pod->decryptedUsername(),
+                'adminPassword' => $this->pod->decryptedPassword(),
             ],
         );
     }

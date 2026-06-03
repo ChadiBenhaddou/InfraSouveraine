@@ -7,9 +7,13 @@ use App\Models\Plan;
 use App\Enums\SubscriptionStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SubscriptionManager
 {
+    private const PRODUCT_CACHE_KEY = 'paypal_product_id';
+    private const WEBHOOK_EVENT_CACHE_PREFIX = 'paypal_webhook_';
+
     public function __construct(
         private readonly CostCalculator $calculator,
         private readonly PayPalService $paypal,
@@ -43,6 +47,7 @@ class SubscriptionManager
             $successUrl,
             $cancelUrl,
             $email,
+            customId: "tenant:{$tenant->id}",
         );
 
         $subscriptionId = $subscription['id'] ?? null;
@@ -61,6 +66,19 @@ class SubscriptionManager
     public function handlePayPalWebhook(array $payload): void
     {
         $eventType = $payload['event_type'] ?? '';
+        $eventId = $payload['id'] ?? '';
+
+        if ($eventId && $this->isDuplicateWebhookEvent($eventId)) {
+            Log::info('Duplicate PayPal webhook event ignored', [
+                'event_id' => $eventId,
+                'event_type' => $eventType,
+            ]);
+            return;
+        }
+
+        if ($eventId) {
+            $this->markWebhookEventProcessed($eventId);
+        }
 
         match ($eventType) {
             'CHECKOUT.ORDER.APPROVED' => $this->handleOrderApproved($payload),
@@ -92,12 +110,21 @@ class SubscriptionManager
 
     private function ensureProduct(): string
     {
+        $cachedId = cache(self::PRODUCT_CACHE_KEY);
+        if ($cachedId) {
+            return $cachedId;
+        }
+
         $product = $this->paypal->createProduct(
             'Abonnement InfraSouveraine',
             'Abonnement mensuel pour serveur AI dédié',
         );
 
-        return $product['id'] ?? throw new \RuntimeException('Failed to create PayPal product');
+        $productId = $product['id'] ?? throw new \RuntimeException('Failed to create PayPal product');
+
+        cache([self::PRODUCT_CACHE_KEY => $productId], now()->addDay());
+
+        return $productId;
     }
 
     private function ensurePlan(Plan $plan, string $productId): string
@@ -120,7 +147,21 @@ class SubscriptionManager
 
     private function handleOrderApproved(array $payload): void
     {
-        Log::info('PayPal order approved (webhook)', ['payload' => $payload]);
+        $resource = $payload['resource'] ?? [];
+        $orderId = $resource['id'] ?? '';
+
+        if (!$orderId) {
+            Log::warning('PayPal order approved but no order ID', ['payload' => $payload]);
+            return;
+        }
+
+        $order = $this->paypal->captureOrder($orderId);
+        $status = $order['status'] ?? '';
+
+        Log::info('PayPal order approved and captured', [
+            'order_id' => $orderId,
+            'capture_status' => $status,
+        ]);
     }
 
     private function handleCaptureCompleted(array $payload): void
@@ -135,18 +176,25 @@ class SubscriptionManager
         }
 
         $parts = explode(':', $customId);
-        if (count($parts) !== 2 || $parts[0] !== 'test_hours') {
+        if (count($parts) < 2 || $parts[0] !== 'test_hours') {
             Log::warning('PayPal capture with unknown custom_id format', ['custom_id' => $customId]);
             return;
         }
 
         $tenantId = $parts[1];
+        $hours = (float) ($parts[2] ?? 0);
         $amountGross = $resource['amount']['value'] ?? '0';
         $amountGrossFloat = (float) $amountGross;
 
-        $hours = $this->resolveHoursFromAmount($amountGrossFloat);
         if ($hours <= 0) {
-            Log::warning('Could not resolve hours from payment amount', ['amount' => $amountGrossFloat]);
+            $hours = $this->resolveHoursFromAmount($amountGrossFloat);
+        }
+
+        if ($hours <= 0) {
+            Log::warning('Could not resolve hours from custom_id or amount', [
+                'custom_id' => $customId,
+                'amount' => $amountGrossFloat,
+            ]);
             return;
         }
 
@@ -156,14 +204,16 @@ class SubscriptionManager
             return;
         }
 
-        $tenant->increment('test_hours_balance', $hours);
+        DB::transaction(function () use ($tenant, $hours, $amountGrossFloat, $orderId) {
+            $tenant->increment('test_hours_balance', $hours);
 
-        $tenant->testHourPurchases()->create([
-            'hours_purchased' => $hours,
-            'amount_paid_cents' => (int) round($amountGrossFloat * 100),
-            'paypal_order_id' => $orderId,
-            'status' => 'completed',
-        ]);
+            $tenant->testHourPurchases()->create([
+                'hours_purchased' => $hours,
+                'amount_paid_cents' => (int) round($amountGrossFloat * 100),
+                'paypal_order_id' => $orderId,
+                'status' => 'completed',
+            ]);
+        });
 
         Log::info('Test hours purchased via PayPal', [
             'tenant_id' => $tenantId,
@@ -176,29 +226,23 @@ class SubscriptionManager
     {
         $resource = $payload['resource'] ?? [];
         $subscriptionId = $resource['id'] ?? '';
-        $customId = $resource['custom_id'] ?? '';
 
         if (!$subscriptionId) return;
 
-        $customParts = $customId ? explode(':', $customId) : [];
-        $tenantId = (count($customParts) === 2 && $customParts[0] === 'tenant')
-            ? $customParts[1]
-            : null;
+        $tenant = Tenant::where('paypal_subscription_id', $subscriptionId)->first();
 
-        $query = Tenant::where('paypal_subscription_id', $subscriptionId);
-        if ($tenantId) {
-            $query->orWhere('id', $tenantId);
-        }
-
-        $tenant = $query->first();
         if (!$tenant) {
             Log::warning('No tenant found for subscription activation', ['subscription_id' => $subscriptionId]);
             return;
         }
 
         $tenant->update([
-            'paypal_subscription_id' => $subscriptionId,
             'subscription_status' => SubscriptionStatus::ACTIVE,
+        ]);
+
+        Log::info('Subscription activated', [
+            'tenant_id' => $tenant->id,
+            'subscription_id' => $subscriptionId,
         ]);
     }
 
@@ -218,8 +262,34 @@ class SubscriptionManager
         $subscriptionId = $resource['id'] ?? '';
         if (!$subscriptionId) return;
 
-        Tenant::where('paypal_subscription_id', $subscriptionId)
-            ->update(['subscription_status' => SubscriptionStatus::CANCELLED]);
+        $tenant = Tenant::where('paypal_subscription_id', $subscriptionId)->first();
+        if (!$tenant) return;
+
+        $tenant->update(['subscription_status' => SubscriptionStatus::CANCELLED]);
+
+        $pod = $tenant->activePod();
+        if ($pod) {
+            try {
+                $api = app(RunPodApi::class);
+                $api->terminatePod($pod->runpod_pod_id);
+                $pod->update(['status' => 'TERMINATED']);
+                Log::info('Pod terminated due to subscription cancellation', [
+                    'tenant_id' => $tenant->id,
+                    'pod_id' => $pod->id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to terminate pod on cancellation', [
+                    'tenant_id' => $tenant->id,
+                    'pod_id' => $pod->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::info('Subscription cancelled and pod terminated', [
+            'tenant_id' => $tenant->id,
+            'subscription_id' => $subscriptionId,
+        ]);
     }
 
     private function handleSubscriptionPaymentFailed(array $payload): void
@@ -229,8 +299,24 @@ class SubscriptionManager
 
         if (!$billingAgreementId) return;
 
-        Tenant::where('paypal_subscription_id', $billingAgreementId)
-            ->update(['subscription_status' => SubscriptionStatus::PAST_DUE]);
+        $tenant = Tenant::where('paypal_subscription_id', $billingAgreementId)->first();
+        if (!$tenant) return;
+
+        $tenant->update(['subscription_status' => SubscriptionStatus::PAST_DUE]);
+
+        try {
+            Mail::to($tenant->user->email)->send(new \App\Mail\PaymentFailed($tenant));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send payment failure notification', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        Log::warning('Subscription payment failed', [
+            'tenant_id' => $tenant->id,
+            'subscription_id' => $billingAgreementId,
+        ]);
     }
 
     private function resolveHoursFromAmount(float $amount): float
@@ -253,5 +339,15 @@ class SubscriptionManager
         }
 
         return $closestDiff < 0.01 ? $closest : 0;
+    }
+
+    private function isDuplicateWebhookEvent(string $eventId): bool
+    {
+        return cache()->has(self::WEBHOOK_EVENT_CACHE_PREFIX . $eventId);
+    }
+
+    private function markWebhookEventProcessed(string $eventId): void
+    {
+        cache([self::WEBHOOK_EVENT_CACHE_PREFIX . $eventId => true], now()->addHours(24));
     }
 }

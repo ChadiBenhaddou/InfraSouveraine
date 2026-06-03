@@ -60,9 +60,9 @@
                     <span wire:loading.remove wire:target="purchase">
                         Acheter {{ $packs[$selectedPack]['label'] }} — {{ number_format($packs[$selectedPack]['price'] / 100, 2) }} $
                     </span>
-                    <span wire:loading wire:target="purchase">Redirection vers Stripe...</span>
+                    <span wire:loading wire:target="purchase">Redirection vers PayPal...</span>
                 </button>
-                <p class="text-xs text-gray-400 mt-3 text-center">Paiement sécurisé par Stripe.</p>
+                <p class="text-xs text-gray-400 mt-3 text-center">Paiement sécurisé par PayPal.</p>
             @endif
 
             <button wire:click="$set('selectedPack', null)" class="w-full text-center text-sm text-gray-400 hover:text-gray-600 mt-3 transition">

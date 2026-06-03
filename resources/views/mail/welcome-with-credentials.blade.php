@@ -29,8 +29,8 @@ Ouvrir votre IA WebUI
 
 > **⚠️ Important :** Sauvegardez ces identifiants immédiatement. Vous en aurez besoin pour vous connecter.
 
-- **Identifiant :** `{{ $pod->admin_username }}`
-- **Mot de passe :** `{{ $pod->admin_password }}`
+- **Identifiant :** `{{ $adminUsername }}`
+- **Mot de passe :** `{{ $adminPassword }}`
 
 ---
 

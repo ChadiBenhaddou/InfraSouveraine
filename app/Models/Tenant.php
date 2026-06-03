@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PodStatus;
 use App\Enums\SubscriptionStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,8 @@ class Tenant extends Model
         'base_monthly_cost',
         'benefit_margin_rate',
         'fixed_markup',
+        'weekly_schedule',
+        'onboarding_step',
         'actual_raw_cost_incurred',
         'profit_generated',
     ];
@@ -35,6 +38,7 @@ class Tenant extends Model
         'base_monthly_cost' => 'decimal:2',
         'benefit_margin_rate' => 'decimal:4',
         'fixed_markup' => 'decimal:2',
+        'weekly_schedule' => 'json',
         'actual_raw_cost_incurred' => 'decimal:2',
         'profit_generated' => 'decimal:2',
         'test_hours_balance' => 'decimal:2',
@@ -53,7 +57,11 @@ class Tenant extends Model
 
     public function activePod(): ?Pod
     {
-        return $this->pods()->whereIn('status', ['CREATING', 'INITIALIZING', 'RUNNING'])->latest()->first();
+        return $this->pods()->whereIn('status', [
+            PodStatus::CREATING->value,
+            PodStatus::INITIALIZING->value,
+            PodStatus::RUNNING->value,
+        ])->latest()->first();
     }
 
     public function testHourPurchases(): HasMany

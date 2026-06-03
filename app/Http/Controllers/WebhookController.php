@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PayPalService;
 use App\Services\SubscriptionManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,16 @@ class WebhookController extends Controller
 
         Log::info('PayPal webhook received', [
             'event_type' => $eventType,
+            'transmission_id' => $headers['paypal-transmission-id'],
         ]);
+
+        $paypal = app(PayPalService::class);
+        if (!$paypal->verifyWebhook($payload, $headers)) {
+            Log::warning('PayPal webhook signature verification failed', [
+                'event_type' => $eventType,
+            ]);
+            return response('Webhook signature verification failed', 400);
+        }
 
         try {
             app(SubscriptionManager::class)->handlePayPalWebhook($request->all());

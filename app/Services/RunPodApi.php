@@ -16,7 +16,8 @@ class RunPodApi
     {
         $this->apiKey = config('runpod.api_key');
         $this->baseUrl = config('runpod.base_url', 'https://rest.runpod.io/v1');
-        $this->useV1Api = str_contains($this->baseUrl, 'rest.runpod.io');
+        $useV1Config = config('runpod.use_v1_api_payload');
+        $this->useV1Api = $useV1Config !== null ? (bool) $useV1Config : str_contains($this->baseUrl, 'rest.runpod.io');
     }
 
     public function createPod(array $payload): array

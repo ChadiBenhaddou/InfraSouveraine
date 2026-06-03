@@ -10,7 +10,7 @@ class PaymentFailedException extends Exception
         string $message = 'Payment processing failed',
         int $code = 0,
         ?\Throwable $previous = null,
-        public readonly ?string $stripePaymentIntentId = null,
+        public readonly ?string $paypalOrderId = null,
     ) {
         parent::__construct($message, $code, $previous);
     }
@@ -20,7 +20,7 @@ class PaymentFailedException extends Exception
         return response()->json([
             'error' => 'Payment Failed',
             'message' => $this->getMessage(),
-            'payment_intent' => $this->stripePaymentIntentId,
+            'paypal_order_id' => $this->paypalOrderId,
         ], 402);
     }
 }

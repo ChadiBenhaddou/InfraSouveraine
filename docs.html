@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfraSouveraine — Documentation technique</title>
+<style>
+  :root {
+    --blue-950: #172554;
+    --blue-900: #1e3a5f;
+    --blue-800: #1e4976;
+    --blue-600: #2563eb;
+    --amber-400: #fbbf24;
+    --amber-500: #f59e0b;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --green-500: #22c55e;
+    --red-500: #ef4444;
+    --orange-500: #f97316;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--slate-800);
+    background: var(--slate-50);
+    line-height: 1.6;
+  }
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 280px; height: 100vh;
+    background: var(--blue-950); color: white; overflow-y: auto; z-index: 100;
+  }
+  .sidebar-logo { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-logo h1 { font-size: 1.25rem; font-weight: 700; }
+  .sidebar-logo p { font-size: 0.75rem; color: var(--slate-400); margin-top: 0.25rem; }
+  .sidebar nav { padding: 1rem 0; }
+  .sidebar nav a {
+    display: block; padding: 0.5rem 1.5rem; color: var(--slate-300); text-decoration: none;
+    font-size: 0.875rem; transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .sidebar nav a:hover, .sidebar nav a.active {
+    background: rgba(255,255,255,0.05); color: white; border-left-color: var(--amber-400);
+  }
+  .sidebar nav .nav-section {
+    padding: 0.75rem 1.5rem 0.25rem; font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-500);
+  }
+  .main { margin-left: 280px; min-height: 100vh; }
+  .topbar {
+    position: sticky; top: 0; background: white; border-bottom: 1px solid var(--slate-200);
+    padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    z-index: 50;
+  }
+  .topbar .badge {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    background: var(--green-500); color: white; font-size: 0.75rem; font-weight: 600;
+    padding: 0.25rem 0.75rem; border-radius: 9999px;
+  }
+  .content { max-width: 960px; margin: 0 auto; padding: 2rem 3rem 4rem; }
+  h2 {
+    font-size: 1.75rem; font-weight: 700; color: var(--blue-950);
+    margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--slate-200);
+  }
+  h2:first-of-type { margin-top: 0; }
+  h3 {
+    font-size: 1.25rem; font-weight: 600; color: var(--blue-800);
+    margin: 1.75rem 0 0.75rem;
+  }
+  h4 {
+    font-size: 1rem; font-weight: 600; color: var(--slate-700);
+    margin: 1.25rem 0 0.5rem;
+  }
+  p { margin-bottom: 1rem; color: var(--slate-600); }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; color: var(--slate-600); }
+  li { margin-bottom: 0.375rem; }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.8125rem;
+    background: var(--slate-100); padding: 0.125rem 0.375rem; border-radius: 4px;
+    color: var(--slate-800);
+  }
+  pre {
+    background: var(--slate-900); color: #e2e8f0; padding: 1rem 1.25rem;
+    border-radius: 8px; overflow-x: auto; font-size: 0.8125rem; line-height: 1.5;
+    margin: 0.75rem 0 1.25rem;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem;
+    font-size: 0.875rem;
+  }
+  th, td { padding: 0.625rem 0.75rem; text-align: left; border-bottom: 1px solid var(--slate-200); }
+  th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
+  tr:hover td { background: var(--slate-50); }
+  .note {
+    background: #eff6ff; border-left: 4px solid var(--blue-600);
+    padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; font-size: 0.875rem;
+  }
+  .warning {
+    background: #fffbeb; border-left: 4px solid var(--amber-500);
+    padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; font-size: 0.875rem;
+  }
+  .danger {
+    background: #fef2f2; border-left: 4px solid var(--red-500);
+    padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; font-size: 0.875rem;
+  }
+  .diagram {
+    background: white; border: 1px solid var(--slate-200); border-radius: 8px;
+    padding: 1.5rem; margin: 1.5rem 0; font-family: monospace; white-space: pre;
+    overflow-x: auto; font-size: 0.8125rem; line-height: 1.7;
+  }
+  .status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.375rem; }
+  .status-green { background: var(--green-500); }
+  .status-red { background: var(--red-500); }
+  .status-amber { background: var(--amber-500); }
+  .toc-card {
+    background: white; border: 1px solid var(--slate-200); border-radius: 10px;
+    padding: 1.5rem; margin-bottom: 1rem;
+  }
+  .toc-card h3 { margin-top: 0; }
+  .grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;
+  }
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .content { padding: 1.5rem; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  .arch-flow { text-align: center; line-height: 2; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>InfraSouveraine</h1>
+    <p>Documentation technique</p>
+  </div>
+  <nav>
+    <div class="nav-section">Vue d'ensemble</div>
+    <a href="#overview">Présentation</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#tech-stack">Stack technique</a>
+
+    <div class="nav-section">Parcours utilisateur</div>
+    <a href="#onboarding">Onboarding</a>
+    <a href="#recommender">Recommandation IA</a>
+    <a href="#pricing">Calcul des prix</a>
+    <a href="#payment">Paiement PayPal</a>
+
+    <div class="nav-section">Infrastructure</div>
+    <a href="#provisioning">Provisionnement RunPod</a>
+    <a href="#monitoring">Monitoring des pods</a>
+    <a href="#webhooks">Webhooks</a>
+    <a href="#jobs">Jobs & queue</a>
+
+    <div class="nav-section">Administration</div>
+    <a href="#admin">Panel Filament</a>
+    <a href="#scheduled">Tâches planifiées</a>
+    <a href="#testing">Mode test</a>
+
+    <div class="nav-section">Déploiement</div>
+    <a href="#deploy">Mise en production</a>
+    <a href="#env">Variables d'environnement</a>
+    <a href="#security">Sécurité</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div style="font-weight:600;color:var(--slate-700);">Documentation technique — v1.0</div>
+    <span class="badge"><span class="status status-green"></span>Production ready</span>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <h2 id="overview">Présentation</h2>
+    <p>
+      <strong>InfraSouveraine</strong> est une plateforme SaaS multi-tenant qui permet aux professionnels
+      et aux entreprises de déployer des serveurs LLM (Large Language Model) privés et isolés
+      sur des GPU dédiés via l'API cloud <strong>RunPod</strong>.
+    </p>
+    <p>
+      La plateforme guide l'utilisateur depuis la description de son cas d'usage jusqu'à l'obtention
+      d'un serveur Open WebUI + Ollama opérationnel, avec un abonnement mensuel à prix fixe.
+    </p>
+
+    <div class="grid-2">
+      <div class="toc-card">
+        <h3>🎯 Objectifs</h3>
+        <ul>
+          <li>Isolation totale des données (pod dédié)</li>
+          <li>Déploiement automatisé en &lt; 5 minutes</li>
+          <li>Prix mensuel fixe et prévisible</li>
+          <li>Souveraineté des données (hébergement Europe)</li>
+        </ul>
+      </div>
+      <div class="toc-card">
+        <h3>👥 Utilisateurs cibles</h3>
+        <ul>
+          <li>Cabinet d'avocats (documents confidentiels)</li>
+          <li>Développeurs (assistant de code privé)</li>
+          <li>PME / ETI (données sensibles)</li>
+          <li>Professionnels de santé (RGPD)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture">Architecture</h2>
+    <h3>Diagramme de flux</h3>
+
+    <div class="diagram">
+User                        Laravel App                        RunPod                    PayPal
+ |                              |                                |                         |
+ |-- Inscription ---------------&gt;|                               |                         |
+ |-- Onboarding Wizard --------&gt;|                               |                         |
+ |   (décrit son besoin)        |                               |                         |
+ |                              |-- OpenAI AI Recommender ----&gt;|                         |
+ |                              |&lt;- modèle + GPU suggéré ----|                         |
+ |-- Sélectionne un GPU -------&gt;|                               |                         |
+ |-- Voir le prix -------------&gt;| (CostCalculator)              |                         |
+ |-- Paiement -----------------&gt;|-- PayPal createSubscription -&gt;|                        |
+ |&lt;-- redirigé vers PayPal ----|                               |                         |
+ |-- Approuve sur PayPal ------&gt;|------ PayPal webhook --------&gt;|-----------------------&gt;|
+ |                              |-- SubscriptionManager         |                         |
+ |                              |   active l'abonnement         |                         |
+ |                              |-- ProvisionRunPodPod --------&gt;|-- createPod -----------&gt;|
+ |                              |   (job queue)                 |                         |
+ |                              |-- MonitorPodStatus ----------&gt;|-- poll status ---------&gt;|
+ |                              |   (toutes les 15s)            |                         |
+ |                              |&lt;- pod RUNNING ----------------|                         |
+ |                              |-- SendWelcomeEmail            |                         |
+ |&lt;-- Email avec identifiants -|                               |                         |
+ |-- Dashboard ----------------&gt;| informations du pod           |                         |
+</div>
+
+    <h3>Structure du projet</h3>
+    <pre>
+app/
+├── Console/              # Kernel, commandes artisan
+├── Enums/                # GpuTier, PodStatus, SubscriptionStatus
+├── Events/               # PodProvisioned
+├── Exceptions/           # PaymentFailedException, RunPodApiException
+├── Filament/             # Admin panel (Client, Plan, Pod resources)
+├── Http/
+│   ├── Controllers/      # Auth, Onboarding, Webhooks (PayPal, RunPod)
+│   └── Livewire/         # OnboardingWizard, BuyTestHours
+├── Jobs/                 # ProvisionRunPodPod, MonitorPodStatus,
+│                         # SendWelcomeEmail, SimulatePodProvisioning
+├── Livewire/             # BuyTestHours (namespace App\Livewire)
+├── Mail/                 # WelcomeWithCredentials, PaymentFailed
+├── Models/               # Tenant, User, Pod, Plan, TestHourPurchase
+├── Providers/            # AppServiceProvider
+└── Services/             # AiRecommender, CostCalculator,
+                          # PayPalService, RunPodApi, SubscriptionManager
+</pre>
+
+    <!-- TECH STACK -->
+    <h2 id="tech-stack">Stack technique</h2>
+    <table>
+      <tr><th>Couche</th><th>Technologie</th><th>Version</th></tr>
+      <tr><td>Backend</td><td>Laravel</td><td>11.x</td></tr>
+      <tr><td>PHP</td><td>PHP</td><td>8.2+</td></tr>
+      <tr><td>Admin panel</td><td>Filament</td><td>3.2</td></tr>
+      <tr><td>Frontend</td><td>Livewire + Alpine.js</td><td>3.4 / 3.x</td></tr>
+      <tr><td>CSS</td><td>Tailwind CSS</td><td>3.4</td></tr>
+      <tr><td>Build</td><td>Vite</td><td>5</td></tr>
+      <tr><td>Base de données</td><td>MySQL / SQLite (tests)</td><td>—</td></tr>
+      <tr><td>Queue</td><td>Database (dev) / Redis (prod)</td><td>—</td></tr>
+      <tr><td>Paiement</td><td>PayPal REST API</td><td>v1/v2</td></tr>
+      <tr><td>IA</td><td>OpenAI API (GPT-4o-mini)</td><td>—</td></tr>
+      <tr><td>GPU Cloud</td><td>RunPod API</td><td>v1</td></tr>
+      <tr><td>HTTP Client</td><td>Guzzle</td><td>7.8</td></tr>
+      <tr><td>Permissions</td><td>spatie/laravel-permission</td><td>6.0</td></tr>
+      <tr><td>Tests</td><td>PHPUnit + Mockery</td><td>11</td></tr>
+      <tr><td>Conteneurisation</td><td>Docker (Open WebUI + Ollama)</td><td>—</td></tr>
+    </table>
+
+    <!-- ONBOARDING -->
+    <h2 id="onboarding">Parcours d'onboarding</h2>
+    <p>
+      L'utilisateur traverse un wizard en 5 étapes, géré par le composant Livewire
+      <code>OnboardingWizard</code>.
+    </p>
+
+    <h3>Étape 1 — Cas d'usage</h3>
+    <p>L'utilisateur décrit son besoin (ex: "assistant juridique pour analyser des contrats").</p>
+    <ul>
+      <li>Validation : texte entre 10 et 1000 caractères</li>
+      <li>Un <code>Tenant</code> est créé ou mis à jour</li>
+      <li>Le service <code>AiRecommender</code> est appelé</li>
+    </ul>
+
+    <h3>Étape 2 — Recommandation</h3>
+    <p>
+      OpenAI (GPT-4o-mini) analyse le cas d'usage et retourne un modèle + GPU recommandé.
+      En cas d'échec de l'API, un fallback par mots-clés est utilisé.
+    </p>
+    <table>
+      <tr><th>Mot-clé</th><th>Modèle par défaut</th></tr>
+      <tr><td>code, program, develop</td><td>DeepSeek Coder 33B</td></tr>
+      <tr><td>legal, privacy, document</td><td>Llama 3 8B Instruct</td></tr>
+      <tr><td>creative, write, story</td><td>Dolphin Mixtral 8x7B</td></tr>
+      <tr><td>Autre</td><td>Llama 3 8B Instruct</td></tr>
+    </table>
+
+    <h3>Étape 3 — Sélection du GPU</h3>
+    <p>L'utilisateur choisit parmi les GPU compatibles avec son modèle (VRAM suffisante).</p>
+    <table>
+      <tr><th>Tier</th><th>VRAM</th><th>Prix/heure</th><th>TPS est.</th></tr>
+      <tr><td>RTX 4090</td><td>24 Go</td><td>0,79 $</td><td>85</td></tr>
+      <tr><td>RTX A6000</td><td>48 Go</td><td>1,49 $</td><td>110</td></tr>
+      <tr><td>A100 40 Go</td><td>40 Go</td><td>2,99 $</td><td>180</td></tr>
+      <tr><td>A100 80 Go</td><td>80 Go</td><td>4,49 $</td><td>230</td></tr>
+      <tr><td>H100</td><td>80 Go</td><td>7,99 $</td><td>350</td></tr>
+    </table>
+
+    <h3>Étape 4 — Revue et paiement</h3>
+    <p>Récapitulatif du prix mensuel, puis redirection vers PayPal pour souscrire.</p>
+
+    <h3>Étape 5 — Confirmation</h3>
+    <p>
+      Une fois le paiement approuvé, le job <code>ProvisionRunPodPod</code> est dispatché
+      pour créer le pod GPU.
+    </p>
+
+    <!-- RECOMMENDER -->
+    <h2 id="recommender">Service de recommandation IA</h2>
+    <p><code>app/Services/AiRecommender.php</code></p>
+    <p>
+      Interroge GPT-4o-mini avec un prompt système listant les modèles disponibles.
+      Le modèle répond en JSON structuré :
+    </p>
+    <pre>{
+  "model_id": "deepseek-coder-33b",
+  "reasoning": "Bon équilibre pour le développement logiciel.",
+  "estimated_vram_required_gb": 24,
+  "recommended_gpu_tier": "RTX_A6000"
+}</pre>
+
+    <div class="note">
+      <strong>Résilience :</strong> Si l'API OpenAI échoue, un fallback par mots-clés
+      sélectionne un modèle approprié. La plateforme reste fonctionnelle sans clé OpenAI.
+    </div>
+
+    <!-- PRICING -->
+    <h2 id="pricing">Calcul des prix</h2>
+    <p><code>app/Services/CostCalculator.php</code></p>
+    <p>Formule de calcul du prix mensuel :</p>
+    <pre>Prix final = (Coût de base × (1 + Marge)) + Frais fixes</pre>
+    <p>Où :</p>
+    <ul>
+      <li><strong>Coût de base</strong> = (prix GPU/h × 730 h) + (stockage Go × coût/Go/mois)</li>
+      <li><strong>Marge</strong> = 35 % par défaut (configurable)</li>
+      <li><strong>Frais fixes</strong> = 9,99 $ par défaut (configurable)</li>
+    </ul>
+
+    <h4>Exemple : RTX 4090</h4>
+    <pre>
+Coût de base  = (0,79 × 730) + (50 × 0,10) = 581,70 $
+Marge (35 %)  = 581,70 × 0,35 = 203,60 $
+Frais fixes   = 9,99 $
+Prix final    = 581,70 + 203,60 + 9,99 = 795,29 $/mois
+</pre>
+
+    <!-- PAYMENT -->
+    <h2 id="payment">Paiement PayPal</h2>
+    <p>Deux modes de paiement sont supportés :</p>
+
+    <h3>Abonnement mensuel</h3>
+    <ul>
+      <li>Création d'un produit PayPal (mis en cache)</li>
+      <li>Création d'un plan de facturation récurrente</li>
+      <li>L'utilisateur est redirigé vers PayPal pour approuver</li>
+      <li>Le webhook <code>BILLING.SUBSCRIPTION.ACTIVATED</code> active le tenant</li>
+    </ul>
+
+    <h3>Heures de test (pay-as-you-go)</h3>
+    <table>
+      <tr><th>Pack</th><th>Heures</th><th>Prix</th></tr>
+      <tr><td>1 heure</td><td>1</td><td>3,99 $</td></tr>
+      <tr><td>10 heures</td><td>10</td><td>19,99 $</td></tr>
+      <tr><td>50 heures</td><td>50</td><td>79,99 $</td></tr>
+      <tr><td>100 heures</td><td>100</td><td>129,99 $</td></tr>
+    </table>
+    <p>
+      Les heures sont créditées via le webhook <code>PAYMENT.CAPTURE.COMPLETED</code>.
+      Le <code>custom_id</code> de la commande PayPal contient le nombre d'heures
+      (<code>test_hours:{tenantId}:{hours}</code>).
+    </p>
+
+    <h3>Sécurité des webhooks</h3>
+    <div class="note">
+      <strong>PayPal :</strong> La signature est vérifiée via l'API
+      <code>/v1/notifications/verify-webhook-signature</code> avant tout traitement.
+    </div>
+    <div class="note">
+      <strong>RunPod :</strong> Le webhook est authentifié via un HMAC SHA-256
+      (<code>X-RunPod-Signature</code>) configurable via <code>RUNPOD_WEBHOOK_SECRET</code>.
+    </div>
+    <div class="note">
+      <strong>Idempotence :</strong> Chaque événement PayPal est dédupliqué via son
+      <code>event_id</code> (cache Redis/file, TTL 24h).
+    </div>
+
+    <!-- PROVISIONING -->
+    <h2 id="provisioning">Provisionnement RunPod</h2>
+    <p>
+      Le job <code>ProvisionRunPodPod</code> crée un pod GPU sur RunPod avec :
+    </p>
+    <ul>
+      <li>Le GPU sélectionné (RTX 4090, A100, H100, etc.)</li>
+      <li>L'image <code>ghcr.io/open-webui/open-webui:ollama</code></li>
+      <li>Le modèle LLM pré-configuré (Ollama)</li>
+      <li>Des identifiants admin générés aléatoirement</li>
+      <li>Un volume persistant pour les modèles (50 Go par défaut)</li>
+      <li>Un port HTTP (8080) exposé</li>
+    </ul>
+
+    <h3>Identifiants</h3>
+    <p>
+      Les identifiants admin sont <strong>chiffrés en AES-256-CBC</strong> avant d'être stockés
+      en base de données. Le modèle <code>Pod</code> expose des accesseurs :
+    </p>
+    <pre>$pod->decryptedUsername();  // retourne le username déchiffré
+$pod->decryptedPassword();  // retourne le password déchiffré</pre>
+
+    <h3>Journal des événements</h3>
+    <p>
+      Lorsque le pod passe à l'état <code>RUNNING</code>, l'événement
+      <code>PodProvisioned</code> est dispatché et l'email
+      <code>WelcomeWithCredentials</code> est envoyé (via la queue).
+    </p>
+
+    <!-- MONITORING -->
+    <h2 id="monitoring">Monitoring des pods</h2>
+    <p><code>app/Jobs/MonitorPodStatus.php</code></p>
+    <p>
+      Après la création du pod, un job de monitoring est dispatché avec un délai de 15 secondes.
+      Il interroge l'API RunPod et met à jour le statut local :
+    </p>
+    <table>
+      <tr><th>Statut RunPod</th><th>Action</th></tr>
+      <tr><td>CREATING / INITIALIZING</td><td>Re-dispatch après 15s (jusqu'à 60 tentatives)</td></tr>
+      <tr><td>RUNNING</td><td><span class="status status-green"></span>Marque comme provisionné, envoie l'email</td></tr>
+      <tr><td>TERMINATED / FAILED</td><td><span class="status status-red"></span>Arrête le monitoring</td></tr>
+      <tr><td>Timeout (60 tentatives)</td><td><span class="status status-red"></span>Statut ← FAILED</td></tr>
+    </table>
+
+    <div class="warning">
+      <strong>Backoff :</strong> Le job utilise un backoff [15, 30, 60] secondes entre les
+      tentatives. En cas d'erreur API passagère, il se re-dispense automatiquement.
+    </div>
+
+    <!-- WEBHOOKS -->
+    <h2 id="webhooks">Webhooks</h2>
+
+    <h3>PayPal → POST /paypal/webhook</h3>
+    <table>
+      <tr><th>Événement</th><th>Action</th></tr>
+      <tr><td><code>CHECKOUT.ORDER.APPROVED</code></td><td>Capture la commande PayPal</td></tr>
+      <tr><td><code>PAYMENT.CAPTURE.COMPLETED</code></td><td>Crédite les heures de test</td></tr>
+      <tr><td><code>BILLING.SUBSCRIPTION.ACTIVATED</code></td><td>Active le tenant, déclenche le provisionnement</td></tr>
+      <tr><td><code>BILLING.SUBSCRIPTION.SUSPENDED</code></td><td>Passe le tenant en PAST_DUE</td></tr>
+      <tr><td><code>BILLING.SUBSCRIPTION.CANCELLED</code></td><td>Annule le tenant + termine le pod</td></tr>
+      <tr><td><code>BILLING.SUBSCRIPTION.PAYMENT.FAILED</code></td><td>PAST_DUE + email de notification</td></tr>
+    </table>
+
+    <h3>RunPod → POST /api/runpod/webhook</h3>
+    <p>
+      Reçoit les mises à jour de statut des pods. Authentifié par HMAC SHA-256.
+      Corps attendu :
+    </p>
+    <pre>{
+  "pod_id": "abcdef-123",
+  "status": "RUNNING",
+  "machine": { "publicIp": "1.2.3.4" },
+  "runtime": { "proxyUrl": "https://..." }
+}</pre>
+
+    <!-- JOBS -->
+    <h2 id="jobs">Jobs & file d'attente</h2>
+    <table>
+      <tr><th>Job</th><th>File</th><th>Description</th></tr>
+      <tr><td><code>ProvisionRunPodPod</code></td><td>default</td><td>Crée un pod RunPod, dispatch <code>MonitorPodStatus</code></td></tr>
+      <tr><td><code>MonitorPodStatus</code></td><td>default</td><td>Ping RunPod jusqu'à RUNNING, puis dispatch <code>SendWelcomeEmail</code></td></tr>
+      <tr><td><code>SendWelcomeEmail</code></td><td>default</td><td>Envoie l'email avec les identifiants (via <code>Mail::queue()</code>)</td></tr>
+      <tr><td><code>SimulatePodProvisioning</code></td><td>default</td><td>Version test (sans appels API réels)</td></tr>
+    </table>
+
+    <div class="warning">
+      <strong>Production :</strong> Utiliser Redis comme driver de queue. Le driver
+      <code>database</code> ne supporte pas les priorités ni les délais de rétention.
+      Configuration recommandée dans <code>.env</code> :
+      <pre>QUEUE_CONNECTION=redis
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis</pre>
+    </div>
+
+    <!-- ADMIN -->
+    <h2 id="admin">Panel d'administration Filament</h2>
+    <p>Accessible via <code>/admin</code>, le panel Filament permet de gérer :</p>
+
+    <h3>Clients (<code>ClientResource</code>)</h3>
+    <ul>
+      <li>Liste des tenants avec statut d'abonnement, GPU, prix</li>
+      <li>Filtres par statut et tier GPU</li>
+      <li>Actions : voir les pods, éditer, supprimer</li>
+      <li>Colonnes : ID, société, propriétaire, GPU, statut, prix, profit</li>
+    </ul>
+
+    <h3>Pods (<code>PodResource</code>)</h3>
+    <ul>
+      <li>Liste des pods avec statut, GPU, modèle, coût</li>
+      <li>Actions : refresh statut, restart, pause, terminate</li>
+      <li>Copie du RunPod ID</li>
+      <li>Statuts : CREATING, INITIALIZING, RUNNING, STOPPED, TERMINATED, FAILED</li>
+    </ul>
+
+    <h3>Plans (<code>PlanResource</code>)</h3>
+    <ul>
+      <li>CRUD des plans GPU</li>
+      <li>Action "Recalculate Price" (synchronise avec la config)</li>
+      <li>Override de marge et frais fixes par plan</li>
+    </ul>
+
+    <!-- SCHEDULED -->
+    <h2 id="scheduled">Tâches planifiées</h2>
+    <p>Définies dans <code>routes/console.php</code> :</p>
+    <table>
+      <tr><th>Tâche</th><th>Fréquence</th><th>Description</th></tr>
+      <tr><td><code>sync-pod-status</code></td><td>Toutes les 5 minutes</td><td>Interroge RunPod pour tous les pods actifs et met à jour les métriques</td></tr>
+      <tr><td><code>sync-profit-metrics</code></td><td>Toutes les heures</td><td>Recalcule le profit généré pour les tenants actifs</td></tr>
+    </table>
+
+    <p>Lancer le scheduler :</p>
+    <pre>php artisan schedule:work</pre>
+
+    <!-- TESTING -->
+    <h2 id="testing">Mode test</h2>
+    <p>
+      Activable via <code>APP_TESTING_MODE=true</code> dans le <code>.env</code>.
+      Ce mode :
+    </p>
+    <ul>
+      <li>Bypasse les paiements PayPal réels</li>
+      <li>Utilise <code>SimulatePodProvisioning</code> au lieu de <code>ProvisionRunPodPod</code></li>
+      <li>Les achats d'heures de test sont crédités instantanément sans PayPal</li>
+      <li>Un pod simulé est créé avec des données fictives</li>
+    </ul>
+
+    <div class="note">
+      <strong>Attention :</strong> Les emails sont toujours envoyés en mode test.
+      Utiliser <code>MAIL_MAILER=log</code> pour le développement.
+    </div>
+
+    <!-- DEPLOY -->
+    <h2 id="deploy">Mise en production</h2>
+
+    <h3>Prérequis serveur</h3>
+    <ul>
+      <li>PHP 8.2+ avec extensions : BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML, cURL</li>
+      <li>Composer</li>
+      <li>MySQL 8.0+ ou MariaDB 10.6+</li>
+      <li>Redis (pour queue, cache, sessions)</li>
+      <li>Node.js & npm (pour le build frontend)</li>
+      <li>Supervisor (pour le worker queue)</li>
+    </ul>
+
+    <h3>Installation</h3>
+    <pre>git clone &lt;repo&gt; /var/www/infrasouveraine
+cd /var/www/infrasouveraine
+
+composer install --no-dev --optimize-autoloader
+npm install && npm run build
+
+cp .env.example .env
+# Éditer .env avec vos credentials
+php artisan key:generate
+php artisan migrate --force
+
+# Optimisations Laravel
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Permissions
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 755 storage bootstrap/cache</pre>
+
+    <h3>Supervisor (worker queue)</h3>
+    <pre>[program:infrasouveraine-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/infrasouveraine/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/log/infrasouveraine-worker.log</pre>
+
+    <h3>Nginx</h3>
+    <pre>server {
+    listen 443 ssl http2;
+    server_name infrasouveraine.io;
+
+    root /var/www/infrasouveraine/public;
+    index index.php;
+
+    ssl_certificate /etc/letsencrypt/live/infrasouveraine.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/infrasouveraine.io/privkey.pem;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}</pre>
+
+    <!-- ENV -->
+    <h2 id="env">Variables d'environnement</h2>
+    <table>
+      <tr><th>Variable</th><th>Défaut</th><th>Description</th></tr>
+      <tr><td><code>APP_ENV</code></td><td><code>production</code></td><td>Environnement</td></tr>
+      <tr><td><code>APP_DEBUG</code></td><td><code>false</code></td><td>Mode debug (toujours false en prod)</td></tr>
+      <tr><td><code>APP_URL</code></td><td>—</td><td>URL publique (nécessaire pour les liens)</td></tr>
+      <tr><td><code>APP_TESTING_MODE</code></td><td><code>false</code></td><td>Bypasse PayPal et simule les pods</td></tr>
+      <tr><td><code>LOG_LEVEL</code></td><td><code>warning</code></td><td>Niveau de log (warning en prod)</td></tr>
+      <tr><td><code>DB_CONNECTION</code></td><td><code>mysql</code></td><td>Connexion base de données</td></tr>
+      <tr><td><code>QUEUE_CONNECTION</code></td><td><code>redis</code></td><td>Driver de queue (redis recommandé)</td></tr>
+      <tr><td><code>CACHE_DRIVER</code></td><td><code>redis</code></td><td>Driver de cache (redis recommandé)</td></tr>
+      <tr><td><code>SESSION_DRIVER</code></td><td><code>redis</code></td><td>Driver de session (redis recommandé)</td></tr>
+      <tr><td><code>SESSION_SECURE_COOKIE</code></td><td><code>true</code></td><td>Cookie HTTPS uniquement</td></tr>
+      <tr><td><code>SESSION_ENCRYPT</code></td><td><code>true</code></td><td>Chiffrement des sessions</td></tr>
+      <tr><td><code>TRUSTED_PROXIES</code></td><td><code>*</code></td><td>Proxy de confiance (load balancer)</td></tr>
+      <tr><td><code>RUNPOD_API_KEY</code></td><td>—</td><td>Clé API RunPod</td></tr>
+      <tr><td><code>RUNPOD_WEBHOOK_SECRET</code></td><td>—</td><td>Secret HMAC pour le webhook RunPod</td></tr>
+      <tr><td><code>PAYPAL_CLIENT_ID</code></td><td>—</td><td>ID client PayPal</td></tr>
+      <tr><td><code>PAYPAL_SECRET</code></td><td>—</td><td>Secret PayPal</td></tr>
+      <tr><td><code>PAYPAL_WEBHOOK_ID</code></td><td>—</td><td>ID du webhook PayPal</td></tr>
+      <tr><td><code>PAYPAL_MODE</code></td><td><code>sandbox</code></td><td><code>sandbox</code> ou <code>live</code></td></tr>
+      <tr><td><code>AI_RECOMMENDER_API_KEY</code></td><td>—</td><td>Clé API OpenAI</td></tr>
+      <tr><td><code>MAIL_MAILER</code></td><td><code>smtp</code></td><td>Driver mail (ses, mailgun, smtp)</td></tr>
+      <tr><td><code>STORAGE_COST_PER_GB_MONTHLY</code></td><td><code>0.10</code></td><td>Coût stockage ($/Go/mois)</td></tr>
+      <tr><td><code>DEFAULT_BENEFIT_MARGIN</code></td><td><code>0.35</code></td><td>Marge bénéficiaire (35 %)</td></tr>
+      <tr><td><code>FIXED_PLATFORM_MARKUP</code></td><td><code>9.99</code></td><td>Frais fixes mensuels ($)</td></tr>
+    </table>
+
+    <!-- SECURITY -->
+    <h2 id="security">Sécurité</h2>
+
+    <h3>Mesures appliquées</h3>
+    <table>
+      <tr><th>Mesure</th><th>Détail</th></tr>
+      <tr><td>Chiffrement des identifiants</td><td>Les mots de passe des pods sont chiffrés en AES-256-CBC via <code>encrypt()</code> Laravel</td></tr>
+      <tr><td>Signature des webhooks</td><td>PayPal : vérification via API REST ; RunPod : HMAC SHA-256</td></tr>
+      <tr><td>Idempotence</td><td>Les événements PayPal sont dédupliqués (cache 24h)</td></tr>
+      <tr><td>Rate limiting</td><td>10 req/min sur les routes d'authentification</td></tr>
+      <tr><td>Mots de passe stricts</td><td>Min 10 car., minuscule, majuscule, chiffre, spécial</td></tr>
+      <tr><td>Sessions</td><td>Chiffrées, cookie Secure, SameSite=Lax</td></tr>
+      <tr><td>CORS</td><td>Restreint à APP_URL</td></tr>
+      <tr><td>Trusted proxies</td><td>Configuré pour load balancer</td></tr>
+      <tr><td>Rotation des clés</td><td><code>APP_PREVIOUS_KEYS</code> supporté</td></tr>
+    </table>
+
+    <h3>Bonnes pratiques</h3>
+    <ul>
+      <li>Ne jamais committer le fichier <code>.env</code> (dans <code>.gitignore</code>)</li>
+      <li>Utiliser un secret différent pour chaque environnement</li>
+      <li>Activer <code>APP_DEBUG=false</code> en production</li>
+      <li>Configurer <code>LOG_LEVEL=warning</code> en production</li>
+      <li>Utiliser HTTPS partout</li>
+      <li>Surveiller les <code>failed_jobs</code> et les logs d'erreur</li>
+      <li>Sauvegarder la base de données régulièrement</li>
+    </ul>
+
+    <hr style="margin:3rem 0;border:none;border-top:1px solid var(--slate-200);">
+
+    <p style="text-align:center;color:var(--slate-400);font-size:0.875rem;">
+      InfraSouveraine — Documentation technique — Générée le 2 juin 2026
+    </p>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -45,16 +45,23 @@ class Pod extends Model
         return $this->status === PodStatus::RUNNING;
     }
 
-    public function credentialUrl(): ?string
+    public function decryptedUsername(): ?string
     {
-        if (!$this->webui_url || !$this->admin_username || !$this->admin_password) {
-            return null;
+        if (!$this->admin_username) return null;
+        try {
+            return decrypt($this->admin_username);
+        } catch (\Throwable) {
+            return $this->admin_username;
         }
+    }
 
-        $parsed = parse_url($this->webui_url);
-        $scheme = $parsed['scheme'] ?? 'https';
-        $host = $parsed['host'] ?? $this->public_ip;
-
-        return "{$scheme}://{$this->admin_username}:{$this->admin_password}@{$host}";
+    public function decryptedPassword(): ?string
+    {
+        if (!$this->admin_password) return null;
+        try {
+            return decrypt($this->admin_password);
+        } catch (\Throwable) {
+            return $this->admin_password;
+        }
     }
 }

@@ -5,12 +5,11 @@ namespace App\Jobs;
 use App\Models\Tenant;
 use App\Models\Pod;
 use App\Enums\PodStatus;
-use App\Mail\WelcomeWithCredentials;
+use App\Events\PodProvisioned;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class SimulatePodProvisioning implements ShouldQueue
@@ -25,8 +24,8 @@ class SimulatePodProvisioning implements ShouldQueue
 
     public function handle(): void
     {
-        $adminUsername = 'admin_' . Str::random(12);
-        $adminPassword = Str::password(24, symbols: true);
+        $adminUsername = encrypt('admin_' . Str::random(12));
+        $adminPassword = encrypt(Str::password(24, symbols: true));
 
         $pod = Pod::create([
             'tenant_id' => $this->tenant->id,
@@ -57,14 +56,7 @@ class SimulatePodProvisioning implements ShouldQueue
             'pod_id' => $pod->id,
         ]);
 
-        try {
-            Mail::to($this->tenant->user->email)
-                ->send(new WelcomeWithCredentials($pod));
-            Log::info('Test welcome email sent', ['pod_id' => $pod->id]);
-        } catch (\Throwable $e) {
-            Log::warning('Test welcome email failed (expected without mail config)', [
-                'error' => $e->getMessage(),
-            ]);
-        }
+        PodProvisioned::dispatch($pod);
+        SendWelcomeEmail::dispatch($pod);
     }
 }

@@ -7,4 +7,5 @@ return [
     'hours_per_month' => 730,
     'default_container_disk_gb' => 50,
     'testing_mode' => (bool) env('APP_TESTING_MODE', false),
+    'default_hours_per_week' => (int) env('DEFAULT_HOURS_PER_WEEK', 40),
 ];

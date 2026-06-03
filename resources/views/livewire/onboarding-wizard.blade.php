@@ -17,12 +17,15 @@
             <div class="flex items-center justify-between max-w-2xl mx-auto">
                 @foreach ([['1', 'Cas d\'usage'], ['2', 'Recommandation'], ['3', 'Budget'], ['4', 'Paiement'], ['5', 'Terminé']] as $i => $item)
                     @php $stepNum = $i + 1; @endphp
+                    @php $visited = $currentStep >= $stepNum; @endphp
                     <div class="flex items-center">
-                        <div class="flex items-center justify-center w-10 h-10 rounded-xl text-sm font-bold transition-all
-                            {{ $currentStep > $stepNum ? 'bg-blue-900 text-white shadow-md' : ($currentStep === $stepNum ? 'bg-amber-500 text-blue-950 shadow-lg shadow-amber-200' : 'bg-gray-100 text-gray-400') }}">
+                        <div wire:click="goToStep({{ $stepNum }})"
+                            class="flex items-center justify-center w-10 h-10 rounded-xl text-sm font-bold transition-all cursor-pointer
+                            {{ $currentStep > $stepNum ? 'bg-blue-900 text-white shadow-md hover:bg-blue-800' : ($currentStep === $stepNum ? 'bg-amber-500 text-blue-950 shadow-lg shadow-amber-200' : 'bg-gray-100 text-gray-400') }}">
                             {{ $currentStep > $stepNum ? '✓' : $item[0] }}
                         </div>
-                        <span class="ml-2.5 text-sm font-medium {{ $currentStep === $stepNum ? 'text-blue-900' : 'text-gray-400' }} hidden sm:inline">{{ $item[1] }}</span>
+                        <span wire:click="goToStep({{ $stepNum }})"
+                            class="ml-2.5 text-sm font-medium cursor-pointer {{ $currentStep === $stepNum ? 'text-blue-900' : 'text-gray-400 hover:text-blue-700' }} hidden sm:inline">{{ $item[1] }}</span>
                     </div>
                     @if ($i < 4)
                         <div class="flex-1 h-0.5 mx-3 {{ $currentStep > $stepNum ? 'bg-blue-900' : 'bg-gray-200' }} rounded-full"></div>
@@ -151,22 +154,36 @@
                             </button>
                         @endforeach
                     </div>
+
+                    <div class="mt-8 text-center">
+                        <button wire:click="goToStep(1)"
+                            class="text-sm text-gray-400 hover:text-blue-700 transition font-medium">
+                            ← Modifier mon cas d'usage
+                        </button>
+                    </div>
                 </div>
             </div>
         @endif
 
-        {{-- Step 3: Pricing --}}
+        {{-- Step 3: Pricing & Schedule --}}
         @if ($currentStep === 3 && $pricing)
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
-                <div class="max-w-3xl mx-auto">
+                <div class="max-w-4xl mx-auto">
                     <div class="text-center mb-10">
                         <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
-                        <h2 class="text-3xl font-bold text-blue-950 mb-2">Récapitulatif de votre abonnement</h2>
-                        <p class="text-gray-500">Un prix mensuel fixe, sans surprise. Compute GPU + stockage inclus.</p>
+                        <h2 class="text-3xl font-bold text-blue-950 mb-2">Planifiez vos horaires</h2>
+                        <p class="text-gray-500">Choisissez quand votre serveur IA sera en ligne. Vous ne payez que pour les heures sélectionnées.</p>
                     </div>
 
+                    {{-- Schedule Selector --}}
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-8">
+                        <h3 class="font-bold text-blue-950 mb-4">Horaires hebdomadaires</h3>
+                        <x-weekly-schedule-selector :schedule="$weeklySchedule" />
+                    </div>
+
+                    {{-- Pricing Summary --}}
                     <div class="grid md:grid-cols-2 gap-6 mb-8">
                         <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
                             <h3 class="font-bold text-blue-950 mb-4">Configuration</h3>
@@ -182,8 +199,8 @@
                         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
                             <h3 class="font-bold text-blue-950 mb-4">Détail des coûts mensuels</h3>
                             <dl class="space-y-3 text-sm">
-                                <x-detail-row label="Compute GPU (730h)" :value="number_format($pricing['base_monthly_cost'] - ($pricing['storage_gb'] ?? 50) * 0.10, 2) . ' $'" />
-                                <x-detail-row label="Stockage" :value="number_format(($pricing['storage_gb'] ?? 50) * 0.10, 2) . ' $'" />
+                                <x-detail-row label="Compute GPU ({{ $pricing['monthly_hours'] }}h)" :value="number_format($pricing['compute_monthly_cost'] ?? 0, 2) . ' $'" />
+                                <x-detail-row label="Stockage ({{ $pricing['storage_gb'] }} Go)" :value="number_format($pricing['storage_monthly_cost'] ?? 0, 2) . ' $'" />
                                 <div class="border-t border-blue-200/50 pt-2">
                                     <x-detail-row label="Coût de base" :value="number_format($pricing['base_monthly_cost'], 2) . ' $'" />
                                 </div>
@@ -196,13 +213,27 @@
                                     </div>
                                 </div>
                             </dl>
+                            @php
+                                $savingPercent = $pricing['monthly_hours'] > 0 ? round((1 - $pricing['monthly_hours'] / 730) * 100) : 0;
+                            @endphp
+                            @if ($savingPercent > 0)
+                                <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 text-center">
+                                    🌿 Économisez <strong>{{ $savingPercent }}%</strong> vs un abonnement 24/7
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    <button wire:click="reviewAndCheckout"
-                        class="w-full py-3.5 px-6 bg-blue-900 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
-                        Continuer vers le paiement →
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="goToStep(2)"
+                            class="flex-1 py-3.5 px-6 bg-white border-2 border-gray-200 hover:border-blue-200 text-gray-700 hover:text-blue-700 rounded-xl font-bold transition">
+                            ← Modifier le GPU
+                        </button>
+                        <button wire:click="reviewAndCheckout"
+                            class="flex-1 py-3.5 px-6 bg-blue-900 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
+                            Continuer vers le paiement →
+                        </button>
+                    </div>
                 </div>
             </div>
         @endif
@@ -215,11 +246,12 @@
                         <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                     </div>
                     <h2 class="text-3xl font-bold text-blue-950 mb-2">Finalisez votre abonnement</h2>
-                    <p class="text-gray-500 mb-8">Votre paiement est sécurisé par Stripe.</p>
+                    <p class="text-gray-500 mb-8">Votre paiement est sécurisé par PayPal.</p>
 
                     <div class="bg-gray-50 rounded-2xl p-6 mb-8 text-left">
                         <dl class="space-y-3 text-sm">
                             <x-detail-row label="Forfait" :value="config('runpod.gpu_tiers.' . ($checkoutData['gpu_tier'] ?? '') . '.display') ?? ($checkoutData['gpu_tier'] ?? '')" />
+                            <x-detail-row label="Heures/semaine" :value="($checkoutData['hours_per_week'] ?? 0) . 'h' " />
                             <x-detail-row label="Facturation" value="Mensuelle" />
                             <div class="border-t border-gray-200 pt-3 mt-3">
                                 <div class="flex items-center justify-between">
@@ -254,17 +286,24 @@
                         </div>
                         <button wire:click="startCheckout" wire:loading.attr="disabled"
                             class="w-full py-3.5 px-6 bg-blue-900 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
-                            <span wire:loading.remove wire:target="startCheckout">S'abonner avec Stripe →</span>
+                            <span wire:loading.remove wire:target="startCheckout">S'abonner avec PayPal →</span>
                             <span wire:loading wire:target="startCheckout">Redirection...</span>
                         </button>
                     @else
                         <button wire:click="startCheckout" wire:loading.attr="disabled"
                             class="w-full py-3.5 px-6 bg-blue-900 hover:bg-blue-800 text-white rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
-                            <span wire:loading.remove wire:target="startCheckout">Payer avec Stripe →</span>
+                            <span wire:loading.remove wire:target="startCheckout">Payer avec PayPal →</span>
                             <span wire:loading wire:target="startCheckout">Redirection...</span>
                         </button>
-                        <p class="text-xs text-gray-400 mt-4">Sécurisé par Stripe. Vos informations de paiement ne sont jamais stockées sur nos serveurs.</p>
+                        <p class="text-xs text-gray-400 mt-4">Sécurisé par PayPal. Vos informations de paiement ne sont jamais stockées sur nos serveurs.</p>
                     @endif
+
+                    <div class="mt-6">
+                        <button wire:click="goToStep(3)"
+                            class="w-full py-3.5 px-6 bg-white border-2 border-gray-200 hover:border-blue-200 text-gray-700 hover:text-blue-700 rounded-xl font-bold transition">
+                            ← Modifier les horaires
+                        </button>
+                    </div>
                 </div>
             </div>
         @endif

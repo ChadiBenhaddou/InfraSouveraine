@@ -35,7 +35,7 @@ class SendWelcomeEmail implements ShouldQueue
 
         try {
             Mail::to($user->email)
-                ->send(new WelcomeWithCredentials($this->pod));
+                ->queue(new WelcomeWithCredentials($this->pod));
 
             Log::info('Welcome email sent', [
                 'pod_id' => $this->pod->id,

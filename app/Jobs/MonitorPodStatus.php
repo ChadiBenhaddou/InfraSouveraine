@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Pod;
+use App\Events\PodProvisioned;
 use App\Services\RunPodApi;
 use App\Exceptions\RunPodApiException;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +16,8 @@ class MonitorPodStatus implements ShouldQueue
     use Dispatchable, Queueable;
 
     public int $timeout = 120;
-    public int $tries = 0; // unlimited — controlled by max_attempts check
+    public int $tries = 3;
+    public array $backoff = [15, 30, 60];
 
     public function __construct(
         public readonly Pod $pod,
@@ -33,6 +35,7 @@ class MonitorPodStatus implements ShouldQueue
                 'pod_id' => $this->pod->id,
                 'runpod_pod_id' => $this->pod->runpod_pod_id,
             ]);
+            $this->delete();
             return;
         }
 
@@ -90,8 +93,10 @@ class MonitorPodStatus implements ShouldQueue
                     'webui_url' => $webuiUrl,
                 ]);
 
+                PodProvisioned::dispatch($this->pod);
                 SendWelcomeEmail::dispatch($this->pod);
 
+                $this->delete();
                 return;
             }
 
@@ -100,6 +105,7 @@ class MonitorPodStatus implements ShouldQueue
                     'pod_id' => $this->pod->id,
                     'status' => $desiredStatus,
                 ]);
+                $this->delete();
                 return;
             }
 
@@ -112,7 +118,17 @@ class MonitorPodStatus implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            static::dispatch($this->pod, $this->attempt + 1)
+            $nextAttempt = $this->attempt + 1;
+            if ($nextAttempt > $maxAttempts) {
+                $this->pod->update(['status' => 'FAILED']);
+                Log::error('Pod monitoring failed after max attempts', [
+                    'pod_id' => $this->pod->id,
+                ]);
+                $this->delete();
+                return;
+            }
+
+            static::dispatch($this->pod, $nextAttempt)
                 ->delay(now()->addSeconds($interval));
         }
     }
