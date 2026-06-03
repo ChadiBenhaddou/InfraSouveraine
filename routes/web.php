@@ -11,6 +11,8 @@ Route::get('/', function () {
 
 Route::get('/health', HealthController::class)->name('health');
 
+Route::get('/ping', fn () => response()->json(['status' => 'ok'], 200));
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'wizard'])->name('onboarding.wizard');
     Route::get('/onboarding/success', [OnboardingController::class, 'success'])->name('onboarding.success');
