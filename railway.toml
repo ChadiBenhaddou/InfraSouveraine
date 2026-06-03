@@ -2,8 +2,8 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "php artisan serve --host=0.0.0.0 --port=${PORT:-8000} &>/tmp/serve.log & S_PID=$!; php artisan package:discover --ansi; php artisan migrate --force 2>&1 || true; wait $S_PID"
-healthcheckPath = "/ping"
+startCommand = "php artisan serve --host=0.0.0.0 --port=${PORT:-8000} >/tmp/serve.log 2>&1 & S_PID=$!; php artisan package:discover --ansi; php artisan migrate --force 2>&1 || true; wait $S_PID"
+healthcheckPath = "/ping.php"
 restartPolicyType = "always"
 
 [service]
