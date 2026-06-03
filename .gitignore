@@ -8,6 +8,8 @@
 !/storage/framework/sessions/.gitkeep
 /storage/framework/views/*
 !/storage/framework/views/.gitkeep
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
 /storage/logs/
 /public/build/
 /public/hot
